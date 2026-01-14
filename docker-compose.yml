@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # СЕРВИС 1: Наше Django приложение
+  web:
+    build: .  # Строим из текущей папки (Dockerfile)
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app  # Связываем папку на компе с папкой в докере (чтобы код обновлялся без перезагрузки)
+    ports:
+      - "8000:8000" # Прокидываем порт наружу
+    depends_on:
+      - db      # Ждем, пока запустятся база
+      - redis   # и кэш
+    environment:
+      # Важно: Внутри докера 'localhost' не работает.
+      # Мы обращаемся к сервисам по их именам: 'db' и 'redis'
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/my_db
+      - REDIS_URL=redis://redis:6379/1
+
+  # СЕРВИС 2: База данных PostgreSQL
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=my_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Сохраняем данные, чтобы не пропали при перезапуске
+
+  # СЕРВИС 3: Кэш (Redis)
+  redis:
+    image: redis:7-alpine
+
+volumes:
+  postgres_data:
